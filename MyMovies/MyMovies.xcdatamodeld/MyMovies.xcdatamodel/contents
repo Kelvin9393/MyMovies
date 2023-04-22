@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="22E261" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="FavouriteMovie" representedClassName=".FavouriteMovie" syncable="YES">
+        <attribute name="artistName" optional="YES" attributeType="String"/>
+        <attribute name="artworkUrl30" optional="YES" attributeType="String"/>
+        <attribute name="collectionName" optional="YES" attributeType="String"/>
+        <attribute name="collectionPrice" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="currency" optional="YES" attributeType="String"/>
+        <attribute name="favouriteDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="imageUrl" optional="YES" attributeType="String"/>
+        <attribute name="longDescription" optional="YES" attributeType="String"/>
+        <attribute name="previewUrl" optional="YES" attributeType="String"/>
+        <attribute name="primaryGenreName" optional="YES" attributeType="String"/>
+        <attribute name="releaseDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="thumbnailImageId" optional="YES" attributeType="String"/>
+        <attribute name="trackId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="trackName" optional="YES" attributeType="String"/>
+        <attribute name="trackPrice" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="trackViewUrl" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="VisitHistory" representedClassName=".VisitHistory" syncable="YES">
+        <attribute name="trackId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="visitedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+</model>
