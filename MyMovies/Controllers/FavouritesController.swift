@@ -8,7 +8,7 @@
 import UIKit
 import CoreData
 
-class FavouritesController: BaseViewController {
+class FavouritesController: BaseViewController, Storyboardable {
     
     // MARK: - IBOutlets
     @IBOutlet weak var tableView: UITableView!
@@ -19,6 +19,11 @@ class FavouritesController: BaseViewController {
     }()
     
     // MARK: - Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationController?.navigationBar.prefersLargeTitles = true
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         SharedData.shared().getFavouriteMoviesAndVisitedHistories() { [unowned self] in

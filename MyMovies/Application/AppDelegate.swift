@@ -14,8 +14,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
-        customizeAppAppearance()
         return true
     }
 
@@ -61,13 +59,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         })
         return container
     }()
-
-    private func customizeAppAppearance() {
-        let appearance = UINavigationBar.appearance()
-        appearance.tintColor = .systemPink
-
-        UITabBar.appearance().tintColor = .systemPink
-    }
 
     // MARK: - Core Data Saving support
 

@@ -8,7 +8,7 @@
 import UIKit
 import Alamofire
 
-class SearchController: BaseViewController {
+class SearchController: BaseViewController, Storyboardable {
     
     // MARK: - IBOutlets
     @IBOutlet weak var tableView: UITableView!

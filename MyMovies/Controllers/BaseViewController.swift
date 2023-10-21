@@ -35,6 +35,6 @@ class BaseViewController: UIViewController {
     
     /// Check if viewController is released from memory to prevent memory leak
     deinit {
-        print("deinit: \(self)")
+        print("deinit: \(Self.self)")
     }
 }

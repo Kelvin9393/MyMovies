@@ -7,11 +7,13 @@
 
 import UIKit
 
-class MoviesController: BaseViewController {
+class MoviesController: BaseViewController, Storyboardable {
     
     // MARK: - IBOutlets
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+
+    var movieService: MovieServiceProtocol!
     
     // MARK: - Properties
     private lazy var movies = [Movie]()
@@ -19,6 +21,12 @@ class MoviesController: BaseViewController {
     private var isFirstAppear = true
     
     // MARK: - Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        navigationController?.navigationBar.prefersLargeTitles = true
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -33,16 +41,18 @@ class MoviesController: BaseViewController {
     
     // MARK: - APIs
     private func fetchAllMovies() {
-        SearchRouter.getAllMovies.send(SearchResponse.self) { [unowned self] result in
-            self.activityIndicator.stopAnimating()
+        movieService.getAllMovies { [weak self] result in
+            guard let self = self else { return }
             
+            self.activityIndicator.stopAnimating()
+
             switch result {
             case .success(let response):
                 self.movies = response.results ?? []
             case .failure(let error):
                 print(String(describing: error))
             }
-            
+
             SharedData.shared().getFavouriteMoviesAndVisitedHistories() {
                 self.tableView.reloadData()
             }

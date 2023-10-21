@@ -13,7 +13,7 @@ final class SharedData {
     // MARK: - CoreData
     var context: NSManagedObjectContext? {
         let context = (UIApplication.shared.delegate as? AppDelegate)?.persistentContainer.viewContext
-//        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context?.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         return context
     }
     
@@ -106,7 +106,6 @@ final class SharedData {
             
             if let fileName = fileName {
                 do {
-                    print(applicationDocumentsDirectory.appendingPathComponent(fileName).path())
                     try FileManager.default.removeItem(at: applicationDocumentsDirectory.appendingPathComponent(fileName))
                 } catch {
                     print("Error removing file \(error)")

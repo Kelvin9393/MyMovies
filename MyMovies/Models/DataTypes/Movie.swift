@@ -102,12 +102,8 @@ extension Movie: ManagedObjectConvertible {
         object.currency = currency
         object.previewUrl = previewUrl
         object.primaryGenreName = primaryGenreName
-
         object.longDescription = longDescription
-
-        let photoID = UUID().uuidString
-        object.thumbnailImageId = photoID
-
+        object.thumbnailImageId = UUID().uuidString
         object.favouriteDate = Date()
         object.trackViewUrl = trackViewUrl
         object.artworkUrl30 = artworkUrl30
