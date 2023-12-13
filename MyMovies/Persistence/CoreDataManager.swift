@@ -12,7 +12,7 @@ final class CoreDataManager {
 
     static let shared = CoreDataManager()
 
-    lazy var persistentContainer: NSPersistentContainer = {
+    private lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "MyMovies")
         container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
@@ -22,19 +22,24 @@ final class CoreDataManager {
         return container
     }()
 
-    lazy var mainContext: NSManagedObjectContext = {
+    lazy var managedContext: NSManagedObjectContext = {
         return persistentContainer.viewContext
     }()
     
-    ///Prevent clients from creating another instance. https://medium.com/@maddy.lucky4u/swift-4-core-data-part-3-creating-a-singleton-core-data-refactoring-insert-update-delete-9811af2fcf75
+    /// Prevent clients from creating another instance.
+    /// https://medium.com/@maddy.lucky4u/swift-4-core-data-part-3-creating-a-singleton-core-data-refactoring-insert-update-delete-9811af2fcf75
     private init() {}
 
     func saveContext() {
-        saveContext(mainContext)
+        saveContext(managedContext)
     }
 
     func saveContext(_ context: NSManagedObjectContext) {
-        if context.parent == mainContext {
+        guard context.hasChanges else {
+            return
+        }
+
+        if context.parent == managedContext {
             saveDerivedContext(context)
             return
         }
@@ -49,6 +54,10 @@ final class CoreDataManager {
     }
 
     func saveDerivedContext(_ context: NSManagedObjectContext) {
+        guard context.hasChanges else {
+            return
+        }
+        
         context.perform { [self] in
             do {
                 try context.save()
@@ -56,7 +65,7 @@ final class CoreDataManager {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
 
-            saveContext(mainContext)
+            saveContext(managedContext)
         }
     }
 }

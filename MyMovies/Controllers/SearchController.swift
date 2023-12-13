@@ -15,6 +15,14 @@ class SearchController: BaseViewController, Storyboardable {
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Properties
+    var movieService: MovieServiceProtocol!
+    var favouriteMovieService: FavouriteMovieServiceProtocol!
+    var visitedHistoryService: VisitedHistoryServiceProtocol!
+
+    private var movies = [Movie]()
+    private var favouriteMovieDict = [Int32: FavouriteMovie]()
+    private var visitHistoryDict = [Int32: VisitHistory]()
+
     private var searchRequest: Request?
     
     enum InfoMessageType: CustomStringConvertible {
@@ -32,8 +40,7 @@ class SearchController: BaseViewController, Storyboardable {
             }
         }
     }
-    
-    private lazy var movies = [Movie]()
+
     private var infoMessage = InfoMessageType.noSearchYet {
         didSet {
             if case .hidden = infoMessage {
@@ -54,15 +61,20 @@ class SearchController: BaseViewController, Storyboardable {
     }()
     
     private lazy var infoMessageLabel: UILabel = {
-        UILabel(text: String(describing: infoMessage), font: .systemFont(ofSize: 16), textColor: .secondaryLabel, textAlignment: .center, numberOfLines: 0, lineBreakMode: .byWordWrapping)
+        UILabel(text: String(describing: infoMessage),
+                font: .systemFont(ofSize: 16),
+                textColor: .secondaryLabel,
+                textAlignment: .center,
+                numberOfLines: 0,
+                lineBreakMode: .byWordWrapping)
     }()
-    
+
     // MARK: - Lifecycle
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        SharedData.shared().getFavouriteMoviesAndVisitedHistories() { [unowned self] in
-            self.tableView.reloadData()
-        }
+
+        fetchFavouriteMoviesAndVisitedHistories()
+        tableView.reloadData()
     }
     
     // MARK: - APIs
@@ -72,7 +84,7 @@ class SearchController: BaseViewController, Storyboardable {
         if movies.isEmpty {
             activityIndicator.startAnimating()
         }
-        
+
         searchRequest = SearchRouter.search(term: searchTerm).send(SearchResponse.self) { result in
             self.activityIndicator.stopAnimating()
             
@@ -104,6 +116,21 @@ class SearchController: BaseViewController, Storyboardable {
             }
         }
     }
+
+    private func fetchFavouriteMovies() {
+        let favouriteMovies = favouriteMovieService.getFavouriteMovies() ?? []
+        favouriteMovieDict = favouriteMovies.reduce(into: [:]) { $0[$1.trackId] = $1 }
+    }
+
+    private func fetchVisitedHistories() {
+        let visitHistories = visitedHistoryService.getVistedHistories() ?? []
+        visitHistoryDict = visitHistories.reduce(into: [:]) { $0[$1.trackId] = $1 }
+    }
+
+    private func fetchFavouriteMoviesAndVisitedHistories() {
+        fetchFavouriteMovies()
+        fetchVisitedHistories()
+    }
     
     // MARK: - Selectors
     @objc private func performSearch(_ searchBar: UISearchBar) {
@@ -120,24 +147,25 @@ class SearchController: BaseViewController, Storyboardable {
             return
         }
 
-        let trackId = movies[indexPath.row].trackId
+        let trackId = Int32(movies[indexPath.row].trackId)
         let movieType: MovieDetailType
 
         if cell.isFavourite {
-            guard let movieIndex = SharedData.shared().favouriteMovieDict[Int32(trackId)] else {
+            guard let favouriteMovie = favouriteMovieDict[trackId] else {
                 return
             }
 
-            let favouriteMovie = SharedData.shared().favouriteMovies[movieIndex]
             movieType = .favouriteMovie(favouriteMovie)
         } else {
             movieType = .movie(movies[indexPath.row])
         }
 
-        SharedData.shared().updateVisitedHistory(forTrackId: movieType.trackId)
+        visitedHistoryService.updateVisitedHistory(forTrackId: trackId, visitHistory: visitHistoryDict[trackId])
 
         let movieDetailsController = MovieDetailsController(thumbnailImage: cell.movieImageView.image ?? .placeholder,
-                                                            movieDetailType: movieType)
+                                                            visitHistory: visitHistoryDict[Int32(trackId)],
+                                                            movieDetailType: movieType,
+                                                            favouriteMovieService: favouriteMovieService)
         movieDetailsController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(movieDetailsController, animated: true)
     }
@@ -156,7 +184,10 @@ class SearchController: BaseViewController, Storyboardable {
         navigationItem.hidesSearchBarWhenScrolling = false
         setupTableView()
     }
-    
+}
+
+// MARK: - Helpers
+extension SearchController {
     private func setupTableView() {
         let cellNib = UINib(nibName: MovieCell.identifier, bundle: nil)
         tableView.register(cellNib, forCellReuseIdentifier: MovieCell.identifier)
@@ -181,8 +212,9 @@ extension SearchController: UITableViewDataSource, UITableViewDelegate {
         let rightInset = isLastRow ? tableView.frame.width : 0
         cell.separatorInset = .init(top: 0, left: leftInset, bottom: 0, right: rightInset)
         let movie = movies[indexPath.row]
-        let viewModel = MovieCellViewModel(with: movie, isFavourite: SharedData.shared().favouriteMovieDict[Int32(movie.trackId)] != nil,
-                                           lastVisitedDate: SharedData.shared().visitHistoryDict[Int32(movie.trackId)])
+        let viewModel = MovieCellViewModel(with: movie,
+                                           isFavourite: favouriteMovieDict[Int32(movie.trackId)] != nil,
+                                           lastVisitedDate: visitHistoryDict[Int32(movie.trackId)]?.visitedDate)
         cell.configure(with: viewModel)
         cell.delegate = self
         return cell
@@ -202,15 +234,20 @@ extension SearchController: MovieCellDelegate {
         }
         
         let movie = movies[indexPath.row]
+        let trackId = Int32(movie.trackId)
         if isFavourite {
-            SharedData.shared().addNewFavouriteMovie(movie: movie, movieImage: cell.movieImageView.image)
+            favouriteMovieService.addNewFavouriteMovie(movie: movie,
+                                                       movieImageData: cell.movieImageView.image?.pngData(),
+                                                       visitHistory: visitHistoryDict[trackId])
         } else {
-            guard let favouriteMovie = SharedData.shared().favouriteMovies.first(where: { $0.trackId == movie.trackId}) else {
+            guard let favouriteMovie = favouriteMovieDict[trackId] else {
                 return
             }
             
-            SharedData.shared().deleteFavouriteMovie(movie: favouriteMovie)
+            favouriteMovieService.deleteFavouriteMovie(movie: favouriteMovie)
         }
+
+        fetchFavouriteMovies()
     }
 }
 
@@ -219,8 +256,7 @@ extension SearchController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         searchRequest?.cancel()
         
-        guard let searchTerm = searchBar.text,
-              !searchTerm.isEmpty else {
+        guard let searchTerm = searchBar.text, !searchTerm.isEmpty else {
             movies.removeAll()
             tableView.reloadData()
             infoMessage = .noSearchYet

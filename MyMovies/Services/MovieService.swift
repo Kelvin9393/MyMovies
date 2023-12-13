@@ -6,19 +6,20 @@
 //
 
 import Foundation
+import Alamofire
 
 protocol MovieServiceProtocol: AnyObject {
-    func getAllMovies(completion: @escaping (Result<SearchResponse, APIError>) -> Void)
-    func searchMovie(for term: String, completion: @escaping (Result<SearchResponse, APIError>) -> Void)
+    @discardableResult func getAllMovies(completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request
+    @discardableResult func searchMovie(for term: String, completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request
 }
 
 class MovieService: MovieServiceProtocol {
-    func getAllMovies(completion: @escaping (Result<SearchResponse, APIError>) -> Void) {
-        SearchRouter.getAllMovies.send(SearchResponse.self, completion: completion)
+    func getAllMovies(completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request {
+        return SearchRouter.getAllMovies.send(SearchResponse.self, completion: completion)
     }
 
-    func searchMovie(for term: String, completion: @escaping (Result<SearchResponse, APIError>) -> Void) {
-        SearchRouter.search(term: term).send(SearchResponse.self, completion: completion)
+    func searchMovie(for term: String, completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request {
+        return SearchRouter.search(term: term).send(SearchResponse.self, completion: completion)
     }
 }
 

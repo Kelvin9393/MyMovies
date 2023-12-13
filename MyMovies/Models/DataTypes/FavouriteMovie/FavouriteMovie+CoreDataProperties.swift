@@ -2,7 +2,7 @@
 //  FavouriteMovie+CoreDataProperties.swift
 //  MyMovies
 //
-//  Created by KELVIN LING SHENG SIANG on 14/01/2023.
+//  Created by KELVIN LING SHENG SIANG on 07/12/2023.
 //
 //
 
@@ -27,11 +27,12 @@ extension FavouriteMovie {
     @NSManaged public var previewUrl: String?
     @NSManaged public var primaryGenreName: String?
     @NSManaged public var releaseDate: Date?
+    @NSManaged public var thumbnailImageData: Data?
     @NSManaged public var trackId: Int32
     @NSManaged public var trackName: String?
     @NSManaged public var trackPrice: NSDecimalNumber?
     @NSManaged public var trackViewUrl: String?
-    @NSManaged public var thumbnailImageId: String?
+    @NSManaged public var visitHistory: VisitHistory?
 
 }
 

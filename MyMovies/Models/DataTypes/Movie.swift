@@ -78,36 +78,30 @@ extension Movie: MovieDisplayable {
 extension Movie: ManagedObjectConvertible {
     func toManagedObject(in context: NSManagedObjectContext) -> FavouriteMovie? {
         let entityName = FavouriteMovie.entityName
-        guard let entitiyDescription = NSEntityDescription.entity(forEntityName: entityName, in: context) else {
-            NSLog("Can't create entity \(entityName)")
-            return nil
-        }
-
-        let object = FavouriteMovie(entity: entitiyDescription, insertInto: context)
-        object.trackId = Int32(trackId)
-        object.artistName = artistName
-        object.trackName = trackName
-        object.collectionName = collectionName
-        object.imageUrl = imageUrl(with: .s600)?.absoluteString
+        let favouriteMovie = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context) as! FavouriteMovie
+        favouriteMovie.trackId = Int32(trackId)
+        favouriteMovie.artistName = artistName
+        favouriteMovie.trackName = trackName
+        favouriteMovie.collectionName = collectionName
+        favouriteMovie.imageUrl = imageUrl(with: .s600)?.absoluteString
 
         if let trackPrice = trackPrice {
-            object.trackPrice = NSDecimalNumber(string: "\(trackPrice)")
+            favouriteMovie.trackPrice = NSDecimalNumber(string: "\(trackPrice)")
         }
 
         if let collectionPrice = collectionPrice {
-            object.collectionPrice = NSDecimalNumber(string: "\(collectionPrice)")
+            favouriteMovie.collectionPrice = NSDecimalNumber(string: "\(collectionPrice)")
         }
 
-        object.releaseDate = convertedReleaseDate
-        object.currency = currency
-        object.previewUrl = previewUrl
-        object.primaryGenreName = primaryGenreName
-        object.longDescription = longDescription
-        object.thumbnailImageId = UUID().uuidString
-        object.favouriteDate = Date()
-        object.trackViewUrl = trackViewUrl
-        object.artworkUrl30 = artworkUrl30
+        favouriteMovie.releaseDate = convertedReleaseDate
+        favouriteMovie.currency = currency
+        favouriteMovie.previewUrl = previewUrl
+        favouriteMovie.primaryGenreName = primaryGenreName
+        favouriteMovie.longDescription = longDescription
+        favouriteMovie.favouriteDate = Date()
+        favouriteMovie.trackViewUrl = trackViewUrl
+        favouriteMovie.artworkUrl30 = artworkUrl30
 
-        return object
+        return favouriteMovie
     }
 }

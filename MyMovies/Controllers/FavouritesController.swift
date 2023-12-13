@@ -14,21 +14,57 @@ class FavouritesController: BaseViewController, Storyboardable {
     @IBOutlet weak var tableView: UITableView!
     
     // MARK: - Properties
+    var favouriteMovieService: FavouriteMovieServiceProtocol!
+    var visitedHistoryService: VisitedHistoryServiceProtocol!
+
+    private var visitHistoryDict = [Int32: VisitHistory]()
+
+    private lazy var fetchedResultsController: NSFetchedResultsController<FavouriteMovie> = {
+        let request = FavouriteMovie.fetchRequest()
+        let sort = NSSortDescriptor(key: "favouriteDate", ascending: false)
+        request.sortDescriptors = [sort]
+
+        let fetchedResultsController = NSFetchedResultsController(fetchRequest: request,
+                                                              managedObjectContext: CoreDataManager.shared.managedContext,
+                                                              sectionNameKeyPath: nil,
+                                                              cacheName: nil)
+        fetchedResultsController.delegate = self
+        return fetchedResultsController
+    }()
+
     private let emptyMessageLabel: UILabel = {
-        UILabel(text: "You don't have any favourite movies", font: .systemFont(ofSize: 16), textColor: .secondaryLabel, textAlignment: .center, numberOfLines: 0, lineBreakMode: .byWordWrapping, isHidden: true)
+        UILabel(text: "You don't have any favourite movies",
+                font: .systemFont(ofSize: 16),
+                textColor: .secondaryLabel,
+                textAlignment: .center,
+                numberOfLines: 0,
+                lineBreakMode: .byWordWrapping,
+                isHidden: true)
     }()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+
         navigationController?.navigationBar.prefersLargeTitles = true
+
+        do {
+            try fetchedResultsController.performFetch()
+        } catch {
+            print(error.localizedDescription)
+        }
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        SharedData.shared().getFavouriteMoviesAndVisitedHistories() { [unowned self] in
-            self.tableView.reloadData()
-        }
+
+        fetchVisitedHistories()
+        tableView.reloadData()
+    }
+
+    private func fetchVisitedHistories() {
+        let visitHistories = visitedHistoryService.getVistedHistories() ?? []
+        visitHistoryDict = visitHistories.reduce(into: [:]) { $0[$1.trackId] = $1 }
     }
     
     // MARK: - Helpers
@@ -37,12 +73,15 @@ class FavouritesController: BaseViewController, Storyboardable {
             return
         }
 
-        let movieDetailType = MovieDetailType.favouriteMovie(SharedData.shared().favouriteMovies[indexPath.row])
-
-        SharedData.shared().updateVisitedHistory(forTrackId: movieDetailType.trackId)
+        let movieDetailType = MovieDetailType.favouriteMovie(fetchedResultsController.object(at: indexPath))
+        
+        visitedHistoryService.updateVisitedHistory(forTrackId: movieDetailType.trackId,
+                                                   visitHistory: visitHistoryDict[Int32(movieDetailType.trackId)])
 
         let movieDetailsController = MovieDetailsController(thumbnailImage: cell.movieImageView.image ?? .placeholder,
-                                                            movieDetailType: movieDetailType)
+                                                            visitHistory: visitHistoryDict[Int32(movieDetailType.trackId)],
+                                                            movieDetailType: movieDetailType,
+                                                            favouriteMovieService: favouriteMovieService)
         movieDetailsController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(movieDetailsController, animated: true)
     }
@@ -51,14 +90,20 @@ class FavouritesController: BaseViewController, Storyboardable {
         super.setupLayout()
         
         view.addSubview(emptyMessageLabel)
-        emptyMessageLabel.anchor(leading: view.leadingAnchor, trailing: view.trailingAnchor, centerY: view.centerYAnchor)
+        emptyMessageLabel.anchor(leading: view.leadingAnchor,
+                                 trailing: view.trailingAnchor,
+                                 centerY: view.centerYAnchor)
     }
     
     override func setupUI() {
         super.setupUI()
+
         setupTableView()
     }
-    
+}
+
+// MARK: - Helpers
+extension FavouritesController {
     private func setupTableView() {
         let cellNib = UINib(nibName: MovieCell.identifier, bundle: nil)
         tableView.register(cellNib, forCellReuseIdentifier: MovieCell.identifier)
@@ -70,8 +115,9 @@ class FavouritesController: BaseViewController, Storyboardable {
 // MARK: - UITableViewDataSource, UITableViewDelegate
 extension FavouritesController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        emptyMessageLabel.isHidden = !SharedData.shared().favouriteMovies.isEmpty
-        return SharedData.shared().favouriteMovies.count
+        let numberOfItem = fetchedResultsController.sections![section].numberOfObjects
+        emptyMessageLabel.isHidden = !(numberOfItem == 0)
+        return numberOfItem
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -83,18 +129,22 @@ extension FavouritesController: UITableViewDataSource, UITableViewDelegate {
         let leftInset = isLastRow ? 0.0 : 16
         let rightInset = isLastRow ? tableView.frame.width : 0
         cell.separatorInset = .init(top: 0, left: leftInset, bottom: 0, right: rightInset)
-        
-        let favouriteMovie = SharedData.shared().favouriteMovies[indexPath.row]
-        let viewModel = MovieCellViewModel(with: favouriteMovie, isFavourite: true, lastVisitedDate: SharedData.shared().visitHistoryDict[favouriteMovie.trackId])
-        cell.configure(with: viewModel)
-        cell.delegate = self
-        
+        configure(cell: cell, at: indexPath)
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         showMovieDetails(atIndexPath: indexPath)
+    }
+
+    private func configure(cell: MovieCell, at indexPath: IndexPath) {
+        let favouriteMovie = fetchedResultsController.object(at: indexPath)
+        let viewModel = MovieCellViewModel(with: favouriteMovie,
+                                           isFavourite: true,
+                                           lastVisitedDate: visitHistoryDict[favouriteMovie.trackId]?.visitedDate)
+        cell.configure(with: viewModel)
+        cell.delegate = self
     }
 }
 
@@ -105,11 +155,38 @@ extension FavouritesController: MovieCellDelegate {
             guard let indexPath = tableView.indexPath(for: cell) else {
                 return
             }
-            
-            SharedData.shared().deleteFavouriteMovie(movie: SharedData.shared().favouriteMovies[indexPath.row]) { [unowned self] in
-                self.tableView.deleteRows(at: [indexPath], with: .automatic)
-            }
+
+            favouriteMovieService.deleteFavouriteMovie(movie: fetchedResultsController.object(at: indexPath))
         }
+    }
+}
+
+// MARK: - NSFetchedResultsControllerDelegate
+extension FavouritesController: NSFetchedResultsControllerDelegate {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        fetchedResultsController.sections?.count ?? 0
+    }
+
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.beginUpdates()
+    }
+
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
+        switch type {
+        case .insert:
+            tableView.insertRows(at: [newIndexPath!], with: .automatic)
+        case .delete:
+            tableView.deleteRows(at: [indexPath!], with: .automatic)
+        case .update:
+            tableView.reloadRows(at: [indexPath!], with: .automatic)
+        case .move:
+            tableView.moveRow(at: indexPath!, to: newIndexPath!)
+        default:break
+        }
+    }
+
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.endUpdates()
     }
 }
 

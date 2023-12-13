@@ -12,51 +12,69 @@ class MoviesController: BaseViewController, Storyboardable {
     // MARK: - IBOutlets
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
-
-    var movieService: MovieServiceProtocol!
     
     // MARK: - Properties
-    private lazy var movies = [Movie]()
-    
+    var movieService: MovieServiceProtocol!
+    var favouriteMovieService: FavouriteMovieServiceProtocol!
+    var visitedHistoryService: VisitedHistoryServiceProtocol!
+
+    private var movies = [Movie]()
+    private var favouriteMovieDict = [Int32: FavouriteMovie]()
+    private var visitHistoryDict: [Int32: VisitHistory] = [:]
     private var isFirstAppear = true
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationController?.navigationBar.prefersLargeTitles = true
+        fetchAllMovies()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        if isFirstAppear {
-            isFirstAppear = false
-        } else {
-            SharedData.shared().getFavouriteMoviesAndVisitedHistories() {
-                self.tableView.reloadData()
-            }
+
+        if !isFirstAppear {
+            fetchFavouriteMoviesAndVisitedHistories()
+            tableView.reloadData()
         }
+
+        isFirstAppear = false
     }
     
     // MARK: - APIs
     private func fetchAllMovies() {
+        activityIndicator.startAnimating()
         movieService.getAllMovies { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self else {
+                return
+            }
             
             self.activityIndicator.stopAnimating()
 
             switch result {
             case .success(let response):
                 self.movies = response.results ?? []
+                self.fetchFavouriteMoviesAndVisitedHistories()
+                self.tableView.reloadData()
             case .failure(let error):
                 print(String(describing: error))
             }
-
-            SharedData.shared().getFavouriteMoviesAndVisitedHistories() {
-                self.tableView.reloadData()
-            }
         }
+    }
+
+    private func fetchFavouriteMovies() {
+        let favouriteMovies = favouriteMovieService.getFavouriteMovies() ?? []
+        favouriteMovieDict = favouriteMovies.reduce(into: [:]) { $0[$1.trackId] = $1 }
+    }
+
+    private func fetchVisitedHistories() {
+        let visitHistories = visitedHistoryService.getVistedHistories() ?? []
+        visitHistoryDict = visitHistories.reduce(into: [:]) { $0[$1.trackId] = $1 }
+    }
+
+    private func fetchFavouriteMoviesAndVisitedHistories() {
+        fetchFavouriteMovies()
+        fetchVisitedHistories()
     }
 
     // MARK: - Helpers
@@ -65,24 +83,25 @@ class MoviesController: BaseViewController, Storyboardable {
             return
         }
 
-        let trackId = movies[indexPath.row].trackId
+        let trackId = Int32(movies[indexPath.row].trackId)
         let movieType: MovieDetailType
 
         if cell.isFavourite {
-            guard let movieIndex = SharedData.shared().favouriteMovieDict[Int32(trackId)] else {
+            guard let favouriteMovie = favouriteMovieDict[trackId] else {
                 return
             }
 
-            let favouriteMovie = SharedData.shared().favouriteMovies[movieIndex]
             movieType = .favouriteMovie(favouriteMovie)
         } else {
             movieType = .movie(movies[indexPath.row])
         }
 
-        SharedData.shared().updateVisitedHistory(forTrackId: movieType.trackId)
+        visitedHistoryService.updateVisitedHistory(forTrackId: trackId, visitHistory: visitHistoryDict[trackId])
 
         let movieDetailsController = MovieDetailsController(thumbnailImage: cell.movieImageView.image ?? .placeholder,
-                                                            movieDetailType: movieType)
+                                                            visitHistory: visitHistoryDict[Int32(trackId)],
+                                                            movieDetailType: movieType,
+                                                            favouriteMovieService: favouriteMovieService)
         movieDetailsController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(movieDetailsController, animated: true)
     }
@@ -93,26 +112,19 @@ class MoviesController: BaseViewController, Storyboardable {
     
     override func setupUI() {
         super.setupUI()
-        
+
+        navigationController?.navigationBar.prefersLargeTitles = true
         setupTableView()
-        fetchAllMovies()
-        
-        let path = FileManager
-            .default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .last?
-            .absoluteString
-            .replacingOccurrences(of: "file://", with: "")
-            .removingPercentEncoding
-        
-        print("Path: \(path ?? "Not found")")
     }
-    
+}
+
+// MARK: - Helpers
+extension MoviesController {
     private func setupTableView() {
         let cellNib = UINib(nibName: MovieCell.identifier, bundle: nil)
         tableView.register(cellNib, forCellReuseIdentifier: MovieCell.identifier)
 
-        /// Hide separator above first row
+        // Hide separator above first row
         tableView.tableHeaderView = UIView()
         tableView.tableFooterView = .init(frame: .init(origin: .zero, size: .init(width: 0, height: 16)))
     }
@@ -134,9 +146,10 @@ extension MoviesController: UITableViewDataSource, UITableViewDelegate {
         let rightInset = isLastRow ? tableView.frame.width : 0
         cell.separatorInset = .init(top: 0, left: leftInset, bottom: 0, right: rightInset)
         let movie = movies[indexPath.row]
+        let trackId = Int32(movie.trackId)
         let viewModel = MovieCellViewModel(with: movie,
-                                           isFavourite: SharedData.shared().favouriteMovieDict[Int32(movie.trackId)] != nil,
-                                           lastVisitedDate: SharedData.shared().visitHistoryDict[Int32(movie.trackId)])
+                                           isFavourite: favouriteMovieDict[trackId] != nil,
+                                           lastVisitedDate: visitHistoryDict[trackId]?.visitedDate)
         cell.configure(with: viewModel)
         cell.delegate = self
         return cell
@@ -156,15 +169,20 @@ extension MoviesController: MovieCellDelegate {
         }
         
         let movie = movies[indexPath.row]
+        let trackId = Int32(movie.trackId)
         if isFavourite {
-            SharedData.shared().addNewFavouriteMovie(movie: movie, movieImage: cell.movieImageView.image)
+            favouriteMovieService.addNewFavouriteMovie(movie: movie,
+                                                       movieImageData: cell.movieImageView.image?.pngData(),
+                                                       visitHistory: visitHistoryDict[trackId])
         } else {
-            guard let favouriteMovie = SharedData.shared().favouriteMovies.first(where: { $0.trackId == movie.trackId}) else {
+            guard let favouriteMovie = favouriteMovieDict[trackId] else {
                 return
             }
-            
-            SharedData.shared().deleteFavouriteMovie(movie: favouriteMovie)
+
+            favouriteMovieService.deleteFavouriteMovie(movie: favouriteMovie)
         }
+
+        fetchFavouriteMovies()
     }
 }
 

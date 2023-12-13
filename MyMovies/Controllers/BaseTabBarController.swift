@@ -24,15 +24,21 @@ class BaseTabBarController: UITabBarController, Storyboardable {
             }
         }
     }
+
+    var movieService: MovieServiceProtocol!
+    var favouriteMovieService: FavouriteMovieServiceProtocol!
+    var visitedHistoryService: VisitedHistoryServiceProtocol!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+
         self.delegate = self
         setupViewControllers()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+
         selectedIndex = SharedData.shared().lastSelectedTab
     }
 
@@ -41,16 +47,24 @@ class BaseTabBarController: UITabBarController, Storyboardable {
         TabBarItem.allCases.forEach { item in
 
             let controller: UIViewController
+
             switch item {
             case .movies:
                 let moviesVC = MoviesController.instantiate()
-                moviesVC.movieService = MovieService()
+                moviesVC.movieService = movieService
+                moviesVC.favouriteMovieService = favouriteMovieService
+                moviesVC.visitedHistoryService = visitedHistoryService
                 controller = UINavigationController(rootViewController: moviesVC)
             case .search:
                 let searchVC = SearchController.instantiate()
+                searchVC.movieService = movieService
+                searchVC.favouriteMovieService = favouriteMovieService
+                searchVC.visitedHistoryService = visitedHistoryService
                 controller = UINavigationController(rootViewController: searchVC)
             case .favourites:
                 let favouritesVC = FavouritesController.instantiate()
+                favouritesVC.favouriteMovieService = favouriteMovieService
+                favouritesVC.visitedHistoryService = visitedHistoryService
                 controller = UINavigationController(rootViewController: favouritesVC)
             }
 
@@ -68,6 +82,7 @@ extension BaseTabBarController: UITabBarControllerDelegate {
         if let index = viewControllers?.firstIndex(of: viewController) {
             SharedData.shared().lastSelectedTab = index
         }
+        
         return true
     }
 }

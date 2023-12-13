@@ -11,12 +11,12 @@ enum MovieDetailType {
     case movie(Movie)
     case favouriteMovie(FavouriteMovie)
 
-    var trackId: Int {
+    var trackId: Int32 {
         switch self {
         case .movie(let movie):
-            return movie.trackId
+            return Int32(movie.trackId)
         case .favouriteMovie(let favouriteMovie):
-            return Int(favouriteMovie.trackId)
+            return favouriteMovie.trackId
         }
     }
 }
@@ -28,9 +28,12 @@ class MovieDetailsController: BaseViewController {
     }
     
     // MARK: - Properties
+    var favouriteMovieService: FavouriteMovieServiceProtocol!
+
     private let thumbnailImage: UIImage
     private var movieDetailType: MovieDetailType
     private let tempMovie: Movie?
+    private let visitHistory: VisitHistory?
     
     private lazy var tableView: UITableView = {
         let tv = UITableView(frame: .zero)
@@ -44,8 +47,13 @@ class MovieDetailsController: BaseViewController {
 
     // MARK: - Lifecycle
 
-    init(thumbnailImage: UIImage, movieDetailType: MovieDetailType) {
+    init(thumbnailImage: UIImage,
+         visitHistory: VisitHistory?,
+         movieDetailType: MovieDetailType,
+         favouriteMovieService: FavouriteMovieServiceProtocol) {
+        self.favouriteMovieService = favouriteMovieService
         self.thumbnailImage = thumbnailImage
+        self.visitHistory = visitHistory
         self.movieDetailType = movieDetailType
 
         switch movieDetailType {
@@ -67,8 +75,10 @@ class MovieDetailsController: BaseViewController {
     private func favouriteMovie() {
         switch movieDetailType {
         case .movie(let movie):
-            SharedData.shared().addNewFavouriteMovie(movie: movie, movieImage: thumbnailImage) { [unowned self] favouriteMovie in
-                self.movieDetailType = .favouriteMovie(favouriteMovie)
+            if let favouriteMovie = favouriteMovieService.addNewFavouriteMovie(movie: movie,
+                                                                               movieImageData: thumbnailImage.pngData(),
+                                                                               visitHistory: visitHistory) {
+                movieDetailType = .favouriteMovie(favouriteMovie)
             }
         default:
             break
@@ -78,18 +88,18 @@ class MovieDetailsController: BaseViewController {
     private func unfavouriteMovie() {
         switch movieDetailType {
         case .favouriteMovie(let favouriteMovie):
-            SharedData.shared().deleteFavouriteMovie(movie: favouriteMovie) { [weak self] in
-                guard let self = self,
-                      let movie = self.tempMovie else { return }
-                self.movieDetailType = .movie(movie)
+            favouriteMovieService.deleteFavouriteMovie(movie: favouriteMovie)
+            guard let movie = tempMovie else {
+                return
             }
+
+            movieDetailType = .movie(movie)
         default:
             break
         }
     }
     
     // MARK: - Helpers
-    
     override func setupLayout() {
         super.setupLayout()
         
@@ -99,7 +109,6 @@ class MovieDetailsController: BaseViewController {
     
     override func setupUI() {
         super.setupUI()
-        
     }
 }
 

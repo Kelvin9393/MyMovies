@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 public class FavouriteMovie: NSManagedObject {
     static let entityName = "FavouriteMovie"
 }
@@ -20,11 +19,11 @@ extension FavouriteMovie: MovieDisplayable {
     }
     
     var thumbnailImage: ThumbnailImageType {
-        guard let fileName = fileName else {
+        guard let thumbnailImageData = thumbnailImageData else {
             return .none
         }
-        
-        return .imageFilePath((SharedData.shared().applicationDocumentsDirectory.appendingPathComponent(fileName)).path())
+
+        return .imageData(thumbnailImageData)
     }
     
     var strReleaseDate: String? {
@@ -37,22 +36,6 @@ extension FavouriteMovie: MovieDisplayable {
     
     var price: Double? {
         (trackPrice ?? collectionPrice)?.doubleValue
-    }
-    
-    var fileName: String? {
-        guard let thumbnailImageId = thumbnailImageId else {
-            return nil
-        }
-        
-        return "Photo-\(thumbnailImageId).png"
-    }
-    
-    var thumbnailImageUrl: URL? {
-        guard let fileName = fileName else {
-            return nil
-        }
-        
-        return SharedData.shared().applicationDocumentsDirectory.appendingPathComponent(fileName)
     }
 }
 
