@@ -19,6 +19,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window = UIWindow(windowScene: windowScene)
         let baseTabBarController = BaseTabBarController.instantiate()
+        baseTabBarController.appService = AppService()
         baseTabBarController.movieService = MovieService()
         baseTabBarController.favouriteMovieService = FavouriteMovieService()
         baseTabBarController.visitedHistoryService = VisitedHistoryService()

@@ -26,6 +26,7 @@ class BaseTabBarController: UITabBarController, Storyboardable {
     }
 
     var movieService: MovieServiceProtocol!
+    var appService: AppServiceProtocol!
     var favouriteMovieService: FavouriteMovieServiceProtocol!
     var visitedHistoryService: VisitedHistoryServiceProtocol!
     
@@ -39,7 +40,7 @@ class BaseTabBarController: UITabBarController, Storyboardable {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        selectedIndex = SharedData.shared().lastSelectedTab
+        selectedIndex = appService.getLastSelectedTab()
     }
 
     private func setupViewControllers() {
@@ -80,7 +81,7 @@ class BaseTabBarController: UITabBarController, Storyboardable {
 extension BaseTabBarController: UITabBarControllerDelegate {
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
         if let index = viewControllers?.firstIndex(of: viewController) {
-            SharedData.shared().lastSelectedTab = index
+            appService.setLastSelectedTab(tabIndex: index)
         }
         
         return true

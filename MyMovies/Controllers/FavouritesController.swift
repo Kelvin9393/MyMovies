@@ -27,7 +27,7 @@ class FavouritesController: BaseViewController, Storyboardable {
         let fetchedResultsController = NSFetchedResultsController(fetchRequest: request,
                                                               managedObjectContext: CoreDataManager.shared.managedContext,
                                                               sectionNameKeyPath: nil,
-                                                              cacheName: nil)
+                                                              cacheName: "FavouriteMovies")
         fetchedResultsController.delegate = self
         return fetchedResultsController
     }()

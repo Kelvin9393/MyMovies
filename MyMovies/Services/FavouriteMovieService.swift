@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-protocol FavouriteMovieServiceProtocol: AnyObject {
+protocol FavouriteMovieServiceProtocol {
     init(coreDataManager: CoreDataManager)
     func getFavouriteMovies() -> [FavouriteMovie]?
     @discardableResult func addNewFavouriteMovie(movie: Movie,
@@ -20,11 +20,6 @@ protocol FavouriteMovieServiceProtocol: AnyObject {
 class FavouriteMovieService: FavouriteMovieServiceProtocol {
     let context: NSManagedObjectContext
     let coreDataManager: CoreDataManager
-
-    private lazy var applicationDocumentsDirectory: URL = {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
-    }()
 
     required init(coreDataManager: CoreDataManager = CoreDataManager.shared) {
         self.context = coreDataManager.managedContext
