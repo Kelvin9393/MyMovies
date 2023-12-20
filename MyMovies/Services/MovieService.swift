@@ -8,7 +8,7 @@
 import Foundation
 import Alamofire
 
-protocol MovieServiceProtocol {
+protocol MovieServiceProtocol: AnyObject {
     @discardableResult func getAllMovies(completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request
     @discardableResult func searchMovie(for term: String, completion: @escaping (Result<SearchResponse, APIError>) -> Void) -> Request
 }

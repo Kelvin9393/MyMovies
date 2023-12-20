@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-protocol FavouriteMovieServiceProtocol {
+protocol FavouriteMovieServiceProtocol: AnyObject {
     init(coreDataManager: CoreDataManager)
     func getFavouriteMovies() -> [FavouriteMovie]?
     @discardableResult func addNewFavouriteMovie(movie: Movie,

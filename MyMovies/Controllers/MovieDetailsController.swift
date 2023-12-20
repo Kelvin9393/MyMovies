@@ -40,6 +40,8 @@ class MovieDetailsController: BaseViewController {
         tv.separatorStyle = .none
         tv.allowsSelection = false
         tv.showsVerticalScrollIndicator = false
+        tv.contentInsetAdjustmentBehavior = .never
+        tv.backgroundColor = .systemBackground
         tv.dataSource = self
         tv.delegate = self
         return tv
@@ -68,6 +70,26 @@ class MovieDetailsController: BaseViewController {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private var navigationBarShadow: UIImage?
+    private var navigationBarBackground: UIImage?
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        navigationBarShadow = navigationController?.navigationBar.shadowImage
+        navigationBarBackground = navigationController?.navigationBar.backIndicatorImage
+
+        navigationController?.navigationBar.shadowImage = UIImage()
+        navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        navigationController?.navigationBar.shadowImage = navigationBarShadow
+        navigationController?.navigationBar.setBackgroundImage(navigationBarBackground, for: .default)
     }
 
     // MARK: - CoreData
@@ -102,6 +124,8 @@ class MovieDetailsController: BaseViewController {
     // MARK: - Helpers
     override func setupLayout() {
         super.setupLayout()
+
+        navigationItem.largeTitleDisplayMode = .never
         
         view.addSubview(tableView)
         tableView.fillSuperview()
@@ -131,6 +155,12 @@ extension MovieDetailsController: UITableViewDataSource, UITableViewDelegate {
             return cell
         default:
             return UITableViewCell()
+        }
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if let cell = tableView.cellForRow(at: [0, 0]) as? MovieDetailsHeaderCell {
+            cell.handleScrollViewDidScrolled(offsetY: scrollView.contentOffset.y)
         }
     }
 }

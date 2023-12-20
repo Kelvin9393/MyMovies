@@ -27,6 +27,7 @@ class MoviesController: BaseViewController, Storyboardable {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+//        navigationController?.navigationItem.largeTitleDisplayMode = .always
         fetchAllMovies()
     }
 

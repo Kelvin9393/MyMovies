@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol AppServiceProtocol {
+protocol AppServiceProtocol: AnyObject {
     func setLastSelectedTab(tabIndex: Int)
     func getLastSelectedTab() -> Int
 }

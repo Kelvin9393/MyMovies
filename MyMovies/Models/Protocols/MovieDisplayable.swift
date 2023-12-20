@@ -16,4 +16,5 @@ protocol MovieDisplayable {
     var strReleaseDate: String? { get }
     var artistName: String? { get }
     var longDescription: String? { get }
+    var previewUrl: String? { get }
 }

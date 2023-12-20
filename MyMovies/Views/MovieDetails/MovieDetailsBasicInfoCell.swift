@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import AVKit
 
 protocol MovieDetailsBasicInfoCellDelegate: AnyObject {
     func movieDetailsBasicInfoCellDidPressedBuy(_ cell: MovieDetailsBasicInfoCell)
@@ -64,6 +65,19 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
     private let aboutMovieDescriptionLabel: UILabel = {
         UILabel(font: .systemFont(ofSize: 13), textColor: .secondaryLabel, numberOfLines: 0)
     }()
+
+    private var avPlayer: AVPlayer!
+
+    private let avPlayerLayer: AVPlayerLayer = {
+        AVPlayerLayer()
+    }()
+
+    private lazy var playerLayerView: UIView = {
+        let view = UIView()
+        view.layer.addSublayer(avPlayerLayer)
+        view.backgroundColor = .systemYellow
+        return view
+    }()
     
     // MARK: - Selectors
     
@@ -107,27 +121,39 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
         } else {
             purchaseButton.isHidden = true
         }
+
+        if let previewURL = URL(string: movie.previewUrl ?? "") {
+            avPlayer = AVPlayer(url: previewURL)
+            avPlayerLayer.player = avPlayer
+            avPlayerLayer.frame = .init(origin: .zero, size: .init(width: 300, height: 200))
+        }
     }
     
     override func setupViews() {
         super.setupViews()
+
+        contentView.isUserInteractionEnabled = false
         
-        contentView.vstack(UIView().vstack(titleLabel,
-                                           artistNameLabel,
-                                           UIView().hstack(genreLabel,
-                                                           separatorDotLabel,
-                                                           releaseDateLabel,
-                                                           spacing: 6,
-                                                           alignment: .center),
-                                           spacing: 6,
-                                           alignment: .leading).padBottom(18),
-                           UIView().vstack(UIView().hstack(purchaseButton.withWidth(160),
-                                                           favouriteButton.withSize(.init(width: 30, height: 30)),
-                                                           spacing: 16),
-                                           alignment: .leading).padBottom(24),
-                           UIView().vstack(aboutMovieTitleLabel,
-                                           aboutMovieDescriptionLabel,
-                                           spacing: 8)).padLeft(16).padRight(16)
+        hstack(UIView().withWidth(16),
+               UIView().vstack(UIView().vstack(UIView().withHeight(8),
+                                               titleLabel,
+                                               artistNameLabel,
+                                               UIView().hstack(genreLabel,
+                                                               separatorDotLabel,
+                                                               releaseDateLabel,
+                                                               spacing: 6,
+                                                               alignment: .center),
+                                               spacing: 6,
+                                               alignment: .leading).padBottom(18),
+                               UIView().vstack(UIView().hstack(purchaseButton.withWidth(160),
+                                                               favouriteButton.withSize(.init(width: 30, height: 30)),
+                                                               spacing: 16),
+                                               alignment: .leading).padBottom(24),
+//                                           playerLayerView.withSize(.init(width: 300, height: 200)),
+                               UIView().vstack(aboutMovieTitleLabel,
+                                               aboutMovieDescriptionLabel,
+                                               spacing: 8)),
+               UIView().withWidth(16))
         
     }
 }

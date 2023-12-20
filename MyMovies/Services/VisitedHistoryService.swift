@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-protocol VisitedHistoryServiceProtocol {
+protocol VisitedHistoryServiceProtocol: AnyObject {
     init(coreDataManager: CoreDataManager)
     func getVistedHistories() -> [VisitHistory]?
     @discardableResult func updateVisitedHistory(forTrackId trackId: Int32, visitHistory: VisitHistory?) -> VisitHistory

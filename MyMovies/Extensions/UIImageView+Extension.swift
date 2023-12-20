@@ -33,7 +33,7 @@ extension UIImageView {
     ///   - placeholder: Placeholder to be displayed when the image is loading . nil by default
     ///   - failureImage: Image to be displayd when request fails. nil by default
     ///   - contentModes: Image content mode, scaleAspectFill by default
-    func loadImage(with url: URL, ofSize size: CGSize? = nil, placeholder: UIImage? = nil, failureImage: UIImage? = nil, contentModes: ImageLoadingOptions.ContentModes? = .init(success: .scaleAspectFill, failure: .scaleAspectFill, placeholder: .scaleAspectFill)) {
+    func loadImage(with url: URL, ofSize size: CGSize? = nil, placeholder: UIImage? = nil, failureImage: UIImage? = nil, contentModes: ImageLoadingOptions.ContentModes? = .init(success: .scaleAspectFill, failure: .scaleAspectFill, placeholder: .scaleAspectFill), completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         
         var processors = [ImageProcessing]()
         if let size = size {
@@ -46,7 +46,7 @@ extension UIImageView {
                                                  failureImage: failureImage,
                                                  failureImageTransition: .fadeIn(duration: 0.1),
                                                  contentModes: contentModes)
-        
-        Nuke.loadImage(with: request, options: loadingOptions, into: self, progress: nil)
+
+        Nuke.loadImage(with: request, options: loadingOptions, into: self, progress: nil, completion: completion)
     }
 }

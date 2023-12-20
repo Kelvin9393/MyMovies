@@ -240,6 +240,29 @@ extension UIView {
         widthAnchor.constraint(equalToConstant: width).isActive = true
         return self
     }
+
+    func setShadowView(withColor color: UIColor? = nil, shadowOffset: CGSize = .zero, shadowOpacity: Float = 1, shadowRadius: CGFloat = 3) {
+        if let color = color {
+            layer.shadowColor = color.cgColor
+        }
+        layer.shadowOffset = shadowOffset
+        layer.shadowOpacity = shadowOpacity
+        layer.shadowRadius = shadowRadius
+    }
+
+    @discardableResult
+    func applyGradient(colours: [UIColor], locations: [NSNumber]? = [0, 1], radius: CGFloat = 0, startPoint: CGPoint = CGPoint(x: 0.0, y: 0.5), endPoint: CGPoint = CGPoint(x: 1.0, y: 0.5), name: String? = nil) -> CAGradientLayer {
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = self.bounds
+        gradientLayer.colors = colours.map { $0.cgColor }
+        gradientLayer.locations = locations
+        gradientLayer.cornerRadius = radius
+        gradientLayer.startPoint = startPoint
+        gradientLayer.endPoint = endPoint
+        gradientLayer.name = name
+        self.layer.insertSublayer(gradientLayer, at: 0)
+        return gradientLayer
+    }
 }
 
 struct AnchoredConstraints {
