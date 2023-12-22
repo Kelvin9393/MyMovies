@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import AVKit
+import AVFoundation
 
 enum MovieDetailType {
     case movie(Movie)
@@ -31,6 +33,7 @@ class MovieDetailsController: BaseViewController {
     var favouriteMovieService: FavouriteMovieServiceProtocol!
 
     private let thumbnailImage: UIImage
+    private var trailerImage: UIImage?
     private var movieDetailType: MovieDetailType
     private let tempMovie: Movie?
     private let visitHistory: VisitHistory?
@@ -45,6 +48,13 @@ class MovieDetailsController: BaseViewController {
         tv.dataSource = self
         tv.delegate = self
         return tv
+    }()
+
+    private var avPlayer: AVPlayer?
+
+    private lazy var avPlayerController: AVPlayerViewController = {
+        let controller = AVPlayerViewController()
+        return controller
     }()
 
     // MARK: - Lifecycle
@@ -66,6 +76,14 @@ class MovieDetailsController: BaseViewController {
         }
 
         super.init(nibName: nil, bundle: nil)
+
+        navigationBarShadow = navigationController?.navigationBar.shadowImage
+        navigationBarBackground = navigationController?.navigationBar.backIndicatorImage
+
+        if let previewURL = URL(string: tempMovie?.previewUrl ?? "") {
+            avPlayer = AVPlayer(url: previewURL)
+            avPlayerController.player = avPlayer
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -75,11 +93,21 @@ class MovieDetailsController: BaseViewController {
     private var navigationBarShadow: UIImage?
     private var navigationBarBackground: UIImage?
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        if let previewURL = URL(string: tempMovie?.previewUrl ?? "") {
+            AVAsset(url: previewURL).generateThumbnail { trailerImage in
+                self.trailerImage = trailerImage
+                if let cell = self.tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? MovieDetailsBasicInfoCell {
+                    cell.trailerButton.setImage(trailerImage, for: .normal)
+                }
+            }
+        }
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
-        navigationBarShadow = navigationController?.navigationBar.shadowImage
-        navigationBarBackground = navigationController?.navigationBar.backIndicatorImage
 
         navigationController?.navigationBar.shadowImage = UIImage()
         navigationController?.navigationBar.setBackgroundImage(UIImage(), for: .default)
@@ -150,7 +178,7 @@ extension MovieDetailsController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .basicInfo:
             let cell = MovieDetailsBasicInfoCell()
-            cell.configure(with: movieDetailType)
+            cell.configure(with: movieDetailType, trailerImage: trailerImage ?? UIImage())
             cell.delegate = self
             return cell
         default:
@@ -186,5 +214,34 @@ extension MovieDetailsController: MovieDetailsBasicInfoCellDelegate {
     
     func movieDetailsBasicInfoCellDidPressedFavourite(_ cell: MovieDetailsBasicInfoCell, isFavourite: Bool) {
         isFavourite ? favouriteMovie() : unfavouriteMovie()
+    }
+
+    func movieDetailsBasicInfoCellDidPressedTrailer(_ cell: MovieDetailsBasicInfoCell) {
+        present(avPlayerController, animated: true) {
+            self.avPlayer?.play()
+        }
+    }
+}
+
+extension AVAsset {
+    func generateThumbnail(completion: @escaping (UIImage?) -> Void) {
+        DispatchQueue.global().async {
+            let avAssetImageGenerator = AVAssetImageGenerator(asset: self)
+            avAssetImageGenerator.appliesPreferredTrackTransform = true
+            let thumbnailTime = CMTimeMake(value: 20, timescale: 1)
+
+            do {
+                let cgThumbImage = try avAssetImageGenerator.copyCGImage(at: thumbnailTime, actualTime: nil)
+                let thumbNailImage = UIImage(cgImage: cgThumbImage)
+                DispatchQueue.main.async {
+                    completion(thumbNailImage)
+                }
+            } catch {
+                print(error.localizedDescription)
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+            }
+        }
     }
 }

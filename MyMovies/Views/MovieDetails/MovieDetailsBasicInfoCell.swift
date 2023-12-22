@@ -6,11 +6,11 @@
 //
 
 import UIKit
-import AVKit
 
 protocol MovieDetailsBasicInfoCellDelegate: AnyObject {
     func movieDetailsBasicInfoCellDidPressedBuy(_ cell: MovieDetailsBasicInfoCell)
     func movieDetailsBasicInfoCellDidPressedFavourite(_ cell: MovieDetailsBasicInfoCell, isFavourite: Bool)
+    func movieDetailsBasicInfoCellDidPressedTrailer(_ cell: MovieDetailsBasicInfoCell)
 }
 
 class MovieDetailsBasicInfoCell: BaseTableViewCell {
@@ -66,17 +66,18 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
         UILabel(font: .systemFont(ofSize: 13), textColor: .secondaryLabel, numberOfLines: 0)
     }()
 
-    private var avPlayer: AVPlayer!
-
-    private let avPlayerLayer: AVPlayerLayer = {
-        AVPlayerLayer()
+    private let trailerTitleLabel: UILabel = {
+        UILabel(text: "Watch the Trailer", font: .systemFont(ofSize: 18, weight: .bold), textColor: .label)
     }()
 
-    private lazy var playerLayerView: UIView = {
-        let view = UIView()
-        view.layer.addSublayer(avPlayerLayer)
-        view.backgroundColor = .systemYellow
-        return view
+    lazy var trailerButton: UIButton = {
+        let button = UIButton(configuration: .borderless(), image: UIImage(), backgroundColor: .black, isHidden: false, target: self, action: #selector(handleTrailerPressed))
+        button.clipsToBounds = true
+        button.layer.cornerRadius = 8
+        button.imageView?.contentMode = .scaleAspectFill
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = UIColor.opaqueSeparator.cgColor
+        return button
     }()
     
     // MARK: - Selectors
@@ -92,7 +93,7 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
     
     // MARK: - Helpers
     
-    func configure(with movieType: MovieDetailType) {
+    func configure(with movieType: MovieDetailType, trailerImage: UIImage) {
         let movie: MovieDisplayable
         
         switch movieType {
@@ -122,11 +123,11 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
             purchaseButton.isHidden = true
         }
 
-        if let previewURL = URL(string: movie.previewUrl ?? "") {
-            avPlayer = AVPlayer(url: previewURL)
-            avPlayerLayer.player = avPlayer
-            avPlayerLayer.frame = .init(origin: .zero, size: .init(width: 300, height: 200))
-        }
+        trailerButton.setImage(trailerImage, for: .normal)
+    }
+
+    @objc private func handleTrailerPressed() {
+        delegate?.movieDetailsBasicInfoCellDidPressedTrailer(self)
     }
     
     override func setupViews() {
@@ -143,17 +144,26 @@ class MovieDetailsBasicInfoCell: BaseTableViewCell {
                                                                releaseDateLabel,
                                                                spacing: 6,
                                                                alignment: .center),
+                                               UIView().withHeight(12),
                                                spacing: 6,
-                                               alignment: .leading).padBottom(18),
+                                               alignment: .leading),
                                UIView().vstack(UIView().hstack(purchaseButton.withWidth(160),
                                                                favouriteButton.withSize(.init(width: 30, height: 30)),
                                                                spacing: 16),
-                                               alignment: .leading).padBottom(24),
-//                                           playerLayerView.withSize(.init(width: 300, height: 200)),
+                                               UIView().withHeight(24),
+                                               alignment: .leading),
                                UIView().vstack(aboutMovieTitleLabel,
                                                aboutMovieDescriptionLabel,
-                                               spacing: 8)),
+                                               UIView().withHeight(16),
+                                               spacing: 8),
+                               UIView().vstack(trailerTitleLabel,
+                                               trailerButton,
+                                               UIView().withHeight(16),
+                                               spacing: 8)
+               ),
                UIView().withWidth(16))
+
+        trailerButton.heightAnchor.constraint(equalTo: trailerButton.widthAnchor, multiplier: 3/5).isActive = true
         
     }
 }
